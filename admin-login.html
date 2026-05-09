@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VP AUREX — Admin Access</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #c9a84c;
+            --black: #0a0a0a;
+            --surface: #111111;
+            --text: #f0ead6;
+        }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--black);
+            color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+        .login-card {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 15px;
+            border: 1px solid rgba(201, 168, 76, 0.2);
+            width: 100%; max-width: 350px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .brand-logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px; color: var(--gold);
+            letter-spacing: 4px; margin-bottom: 30px;
+        }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #6b6048; display: block; margin-bottom: 8px; }
+        input {
+            width: 100%; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(201, 168, 76, 0.1);
+            padding: 12px; color: white; border-radius: 5px; outline: none; box-sizing: border-box;
+        }
+        input:focus { border-color: var(--gold); }
+
+        /* Password field with eye icon */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 40px; /* eye icon ke liye space */
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            color: #6b6048;
+            user-select: none;
+            transition: color 0.3s;
+        }
+        .toggle-password:hover { color: var(--gold); }
+
+        .btn-login {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #a07a2a, #c9a84c);
+            border: none; color: black; font-weight: 600;
+            border-radius: 5px; cursor: pointer; margin-top: 10px;
+            transition: 0.3s; letter-spacing: 1px;
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(201, 168, 76, 0.3); }
+
+        .forgot-link {
+            display: block;
+            margin-top: 18px;
+            font-size: 11px;
+            color: #8a7a4a;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .forgot-link:hover { color: var(--gold); }
+
+        #error-msg { color: #e05252; font-size: 12px; margin-top: 15px; display: none; }
+        #success-msg { color: #4ce09a; font-size: 12px; margin-top: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="brand-logo">VP AUREX</div>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Admin Email</label>
+                <input type="email" id="email" placeholder="admin@vpaurex.com" required>
+            </div>
+            <div class="form-group">
+                <label>Access Key</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" placeholder="••••••••" required>
+                    <span class="toggle-password" id="toggle-password" title="Show password">👁</span>
+                </div>
+            </div>
+            <button type="submit" class="btn-login">VERIFY ACCESS</button>
+
+            <a id="forgot-password" class="forgot-link">Forgot Password?</a>
+
+            <div id="error-msg"></div>
+            <div id="success-msg"></div>
+        </form>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // 1. Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDtwC9VQ1cT2-HgvdYjfgu573qUHxAPPQQ",
+            authDomain: "vpaurex-42eef.firebaseapp.com",
+            databaseURL: "https://vpaurex-42eef-default-rtdb.firebaseio.com",
+            projectId: "vpaurex-42eef",
+            storageBucket: "vpaurex-42eef.firebasestorage.app",
+            messagingSenderId: "575670373529",
+            appId: "1:575670373529:web:f86a21ed8f361d1c8cbc08"
+        };
+
+        // 2. Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+
+        // 3. Get elements
+        const loginForm = document.getElementById('login-form');
+        const errorMsg = document.getElementById('error-msg');
+        const successMsg = document.getElementById('success-msg');
+        const forgotLink = document.getElementById('forgot-password');
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('toggle-password');
+
+        // Helper functions
+        function showError(text) {
+            errorMsg.style.display = 'block';
+            errorMsg.innerText = text;
+            successMsg.style.display = 'none';
+        }
+        function showSuccess(text) {
+            successMsg.style.display = 'block';
+            successMsg.innerText = text;
+            errorMsg.style.display = 'none';
+        }
+
+        // 4. Show/Hide Password Logic
+        if (togglePassword) {
+            togglePassword.addEventListener('click', () => {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    togglePassword.innerText = '🙈';  // hide icon
+                    togglePassword.title = 'Hide password';
+                } else {
+                    passwordInput.type = 'password';
+                    togglePassword.innerText = '👁';  // show icon
+                    togglePassword.title = 'Show password';
+                }
+            });
+        }
+
+        // 5. Login Logic
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const email = document.getElementById('email').value;
+                const password = passwordInput.value;
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        console.log("Login Successful!");
+                        window.location.href = 'admin dashboard.html';
+                    })
+                    .catch((error) => {
+                        console.error("Login Error:", error.message);
+                        showError("Access Denied: " + error.message);
+                    });
+            });
+        }
+
+        // 6. Forgot Password Logic
+        if (forgotLink) {
+            forgotLink.addEventListener('click', () => {
+                const email = document.getElementById('email').value.trim();
+
+                if (!email) {
+                    showError("Please enter your admin email above first.");
+                    return;
+                }
+
+                auth.sendPasswordResetEmail(email)
+                    .then(() => {
+                        showSuccess("Reset link sent to " + email + ". Check inbox/spam.");
+                    })
+                    .catch((error) => {
+                        console.error("Reset Error:", error.message);
+                        showError("Error: " + error.message);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
